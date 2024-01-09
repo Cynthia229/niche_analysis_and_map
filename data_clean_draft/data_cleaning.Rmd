@@ -1,0 +1,103 @@
+---
+title: "data cleaning"
+author: "Wenxin Song"
+date: "2022-12-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(stringr)
+library(tidyverse)
+```
+
+```{r}
+dat <- readRDS("whole_df.Rds")
+# weird address
+idx = which(str_detect(dat$address,"\\#"))
+dat[idx,] %>% select(name,address,website)
+dat$address[idx[1]] <- "9888 Bissonnet, Suite-285, Houston, TX 77036"
+dat$address[idx[2]] <- "25 NE 2nd Street, Room 5601, Miami, FL 33132"
+dat$address[idx[4]] <- "1906 College Heights Blvd Ste 71031, Bowling Green, KY 42101"
+dat$address[idx[5]] <- "11011 SW 104 Street, Portable T-301, Miami, FL 33176"
+dat$address[idx[6]] <- "11380 NW 27th Avenue, Room 1111, Miami, FL 33167"
+dat$address[idx[7]] <- "19735 Colima Rd Ste 2, Rowland Heights, CA 91748"
+dat$address[idx[8]] <- "1715 High School Rd #240, Jackson, WY 83002"
+dat$address[idx[9]] <- "1164 N Virginia St, Reno, NV 89503"
+
+# [1] "9888 BISSONNET #285HOUSTON, TX 77036" -> https://www.privateschoolreview.com/knowledge-first-empowerment-academy-profile           
+# [2] "25 NE 2ND ST # 5MIAMI, FL 33132" -> https://sasdreamfactory.org/apps/pages/index.jsp?uREC_ID=475252&type=d
+# [3] "#1 MARK TWAIN CIRCLECLAYTON, MO 63105" # same with the official website                   
+# [4] "1906 COLLEGE HEIGHTS BLVD. #71031BOWLING GREEN, KY 42101" -> https://www.wku.edu/admissions/tours.php
+# [5] "11011 SW 104TH ST # T-301MIAMI, FL 33176" -> same as 2nd                
+# [6] "11380 NW 27TH AVE # 1111MIAMI, FL 33167" -> same as 2nd                 
+# [7] "19735 COLIMA RD #2ROWLAND HEIGHTS, CA 91748" -> https://www.eliteopenschool.org/sevp-certified-locations           
+# [8] "1715 HIGH SCHOOL ROAD, #240JACKSON, WY 83001"            
+# [9] "JOT TRAVIS BULDING #048 1164 NRENO, NV 89503" -> https://en.wikipedia.org/wiki/Davidson_Academy_(Reno,_Nevada)#:~:text=The%20Davidson%20Academy%20is%20a%20school%20for%20profoundly,Reno%20campus%20for%20students%20living%20in%20the%20area.   
+
+## issue:
+# the website for 5th and 6th school looks weird
+# 5th school is called School for Advanced Studies - Kendall on its website
+```
+
+```{r}
+# deal with tuition
+dat$tuition_num <- dat$tuition %>% str_remove("\\$") %>% str_remove(",") %>% as.numeric()
+```
+
+```{r}
+# deal with graduation_rate and academic
+tmp <- dat %>% select(graduation_rate, academic) %>%
+  unnest_wider(academic, names_sep = "_") 
+n = dim(dat)[1]
+GSA <- matrix(NA,nrow = n, ncol = 3)
+colnames(GSA) <- c("grad_rate","SAT","ACT")
+
+for (i in 1:n){
+  if(length(tmp$academic_1[[i]]) == 1){
+    if(!is.null(tmp$academic_1[[i]])) GSA[i,1] = as.numeric(str_remove(tmp$academic_1[[i]],"%"))/100
+    if(!is.null(tmp$academic_2[[i]])) GSA[i,2] = as.numeric(tmp$academic_2[[i]][1])
+    if(!is.null(tmp$academic_3[[i]])) GSA[i,3] = as.numeric(tmp$academic_3[[i]][1])
+  }
+  else{
+    if(!is.null(tmp$graduation_rate[[i]])) GSA[i,1] = as.numeric(str_remove(tmp$graduation_rate[[i]],"%"))/100
+    if(!is.null(tmp$academic_1[[i]])) GSA[i,2] = as.numeric(tmp$academic_1[[i]][1])
+    if(!is.null(tmp$academic_2[[i]])) GSA[i,3] = as.numeric(tmp$academic_2[[i]][1])
+  }
+}
+
+dat = cbind(dat,GSA)
+```
+
+```{r}
+# deal with programs
+# program_tags <- dat %>% select(programs) %>%
+#   unnest_wider(programs, names_sep = "_") %>%
+#   apply(2,unique) %>%
+#   unlist() %>%
+#   unique()
+# program_tags
+
+# AIG <- matrix(NA,nrow = n,ncol=3)
+# colnames(AIG) <- c("AP offered","IB offered", "Gifted Prog. Offered")
+
+tags <- c("AP offered","IB offered", "Gifted Prog. Offered")
+AIG = rep(NA,n)
+
+for (i in 1:10){
+  idx = rep(FALSE,3)
+  if ("AP Offered" %in% dat$programs[[i]]){
+    idx[1] = TRUE
+  }
+  if("IB Offered" %in% dat$programs[[i]]){
+    idx[2] = TRUE
+  }
+  if("Gifted Prog. Offered" %in% dat$programs[[i]]){
+    idx[3] = TRUE
+  }
+  AIG[i] = tags[idx]
+}
+```
+
+
+

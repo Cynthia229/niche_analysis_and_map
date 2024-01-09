@@ -1,0 +1,89 @@
+
+```{r}
+require(data.table)
+require(tidyverse)
+```
+
+```{r}
+whole_df = readRDS(paste0(here::here(),"/dirty_df.Rds"))
+big_df = whole_df %>% filter(!is.na(lat))
+```
+
+programs
+aid
+academic
+popular_uni
+pop_uni_attend
+comment_dist
+
+```{r}
+comment_dist = big_df %>%
+  select(comment_dist) %>%
+  unnest_wider(comment_dist, names_sep = "_") %>%
+  mutate(five = str_split(comment_dist_1, " "), four = str_split(comment_dist_2, " "),
+         three = str_split(comment_dist_3, " "), two = str_split(comment_dist_4, " "), 
+         one = str_split(comment_dist_5, " ")) %>%
+  unnest_wider(five, names_sep = "") %>%
+  unnest_wider(four, names_sep = "") %>%
+  unnest_wider(three, names_sep = "") %>%
+  unnest_wider(two, names_sep = "") %>%
+  unnest_wider(one, names_sep = "") %>%
+  select(five1, four1, three1, two1, one1) %>%
+  rename(five = five1, four = four1, three = three1, two = two1, one = one1) %>%
+  mutate(five = as.integer(five), four = as.integer(four), three = as.integer(three), two = as.integer(two), one = as.integer(one)) %>%
+  mutate(peopleRated = five + four + three + two + one) %>%
+  mutate(meanRating = (5*five + 4*four + 3*three + 2*two + one)/peopleRated)
+```
+
+```{r}
+big_df %>%
+  unnest_wider(rates, names_sep = "_") %>%
+  filter(!rates_4 %like% "College")
+```
+
+
+```{r}
+# academic
+big_df %>%
+  select(rates) %>%
+  unnest_wider(rates, names_sep = "_") %>%
+  # Academic
+  mutate(Academics = ifelse(str_detect(rates_1, "unavailable"), NA, 
+                            str_replace(str_sub(str_replace(rates_1, "Academicsgrade", ""), 2), " minus", "-"))) %>%
+  # Diversity
+  mutate(Diversity = ifelse(str_detect(rates_2, "unavailable"), NA, 
+                            str_replace(str_sub(str_replace(rates_2, "Diversitygrade", ""), 2), " minus", "-"))) %>%
+  # Teachers
+  mutate(Teachers = ifelse(str_detect(rates_3, "unavailable"), NA, 
+                            str_replace(str_sub(str_replace(rates_3, "Teachersgrade", ""), 2), " minus", "-"))) %>%
+  # College Prep
+  mutate(CollegePrep = ifelse(str_detect(rates_4, "unavailable"), NA, 
+                            str_replace(str_sub(str_replace(rates_4, "College Prepgrade", ""), 2), " minus", "-"))) %>%
+  # Clubs & Activities
+  mutate(ClubsActivities = ifelse(str_detect(rates_5, "unavailable"), NA, 
+                      str_replace(str_sub(str_replace(rates_5, "Clubs & Activitiesgrade", ""), 2), " minus", "-"))) %>%
+  # one outlier handling
+  mutate(CollegePrep = ifelse(CollegePrep %like% "grade", NA, CollegePrep)) %>%
+  mutate(ClubsActivities = ifelse(ClubsActivities %like% "grade", NA, ClubsActivities)) %>%
+  select(Academics, Diversity, Teachers, CollegePrep, ClubsActivities)
+```
+
+
+```{r}
+columns = cbind(comment_dist, rates) %>%
+  select(-five, -four, -three, -two, -one)
+```
+
+List of aspects:
+Academics - 1027
+Diversity - 1027
+Teachers - 1027
+College Prep - 1026
+Clubs & Activities - 1026
+Sports - 1026
+Cost of Living - 858
+Good for Families - 858
+Housing - 858
+Food - 379
+Resources & Facilities - 379
+Administration - 379

@@ -1,0 +1,33 @@
+
+``` {r}
+library(tidyverse)
+```
+
+```{r}
+df <- readRDS("whole_df.Rds")
+```
+
+``` {r}
+df$safe_poll <- df$safe_poll%>%
+  str_remove("%") %>%
+  {suppressWarnings(as.numeric(.)/100)} 
+```
+
+``` {r}
+df$happy_poll <- df$happy_poll%>%
+  str_remove("%") %>%
+  {suppressWarnings(as.numeric(.)/100)}
+```
+
+```{r}
+df$teacher_student_ratio <- lapply(df$teacher_student_ratio, 
+                                   function(x) replace(x, 
+                                                       !grepl(":", x), 
+                                                       NA)) %>%
+  sub("\\:.*", "", .) %>%
+  as.numeric()
+
+df$teacher_student_ratio <- lapply(df$teacher_student_ratio, 
+                                   function(x) ifelse(x > 100, NA, x)) %>%
+  as.numeric()
+```

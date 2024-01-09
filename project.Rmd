@@ -1,0 +1,95 @@
+---
+title: "Top US High School: Application to top school hunters"
+subtitle: "Sta 523 - Final Project"
+format: 
+  html:
+    self-contained: true
+author:
+-  Jingan Zhou
+-  Wenxin Song
+-  Zhiyuan Jiang
+-  Jerry Yang
+---
+
+## Setup
+
+To start the application, you could run any single r scripts inside the `map_app` folder or opening [this link](https://olivenj.shinyapps.io/top_us_school_map/). The page will take about a second to respond for changes. 
+
+## Introduction
+This Project is an interactive Shiny App allowing users to investigating Top US high Schools.
+
+It contains two main parts: an interactive map and a data analyze dashboard.
+
+From the map, users could view top 1000 high schools from the map, and filtering their desired schools based on different categories like the location (State/Town), the school type (Public/Private), the program offered (AP/IB/Gifted Children Program), etc.
+Each school will be displayed as a marker on the map, and the users are allowed to click on the marker to have an overview about the schools information, including a simple introduction, the address, a callable phone number, an actionable link to the school's website, etc.
+
+For the data analysis dashboard, the users could investigate a series of explanatory data analysis based on different variables the application offered and compare the selected school(s) nationwide. To use the `School Analysis` option, please select a school before click on **Show Plot**.
+
+
+
+## Methods / Implementation
+The main body of the map is build using `Shiny`, and the map is implemented using `leaflet`.
+
+The data we used comes from [niche](niche.com), an online ranking and review website.
+To collect the data, we initially planning to use `rvest` and other web scrapping packages, but niche has strict anti-scrap protocol, and it only allows user to scrap the data once every 30 minutes.
+To bypass the rule, we used an Chrome extension called [DownloadThemAll!](https://www.downthemall.net/) to manually download all over thousands webpages.
+Although it sounds like a time consuming task, thanks to the in-build function of the extension and regular expression, we manage to download all webpage in only 5 minutes. 
+
+Then, we use `rvest` and `tidyverse` to scrap, clean, and store the data from the downloaded webpages. Note that the data scraped directly from the webpages are not clean as the web structures for each school are slightly different. For example, a school with missing `ACT` information might have their `SAT` information recorded in `ACT` session while leaving `SAT` blank. All columns are examined manually and then cleaned if necessary by exception handling and checking the original information websites.
+
+For more information about how to use the application, you could view the `About` tab from the App.
+
+For a demonstration of our project, please find the video [here](https://youtu.be/AwB8VL5yk-Y).
+
+**P.S.: We hide an Easter egg in our app, hope you could find it ! Enjoy !**
+
+
+## Discussion & Conclusions
+
+As we are writing the applications, many features that we planned are failed to achieve due to time limits or tech difficulties, and here we will list some of them:
+
+1. Data Collection: due to the anti-scrap practice, we could not obtain the data in a reproduce and efficient way, and the data set could not auto-update. Niche as a company does not have API for third-party to gain access to their data, and we had contacted their data team request for raw data but did not receive any feedback at the time this document is written.
+
+2. Data Quality and Cleaning: The quality of the data we have is generally good, but for certain variables/parts of the data set, they are more nasty, and really hard to handle with. For example, we initially plan to add information about the application process, like the deadline, the application fee. But these information are only available to a certain amount of school and the data we scraped could be messed up due to the lack of corresponding information, so by balancing the cost and benefit, we decided to delete this feature. Some other problem we encountered including invalid URL link, and incomplete financial information. 
+
+3. Multiple Selecting: One feature we want to achieve is allowing the user to select multiple school types (for instance, a user may want to find a all-boys, boarding school). This could be easily achieved in the UI level, but because the schools types are organized as a nested list in our data set, and not every schools has equal length of the list (some schools have three different type: single gender, religious, and boarding school, while some does not have at all), we could not find a easy way to filter the schools which has more than one type. Our current method could filtering school with only one type by looking a the type column. 
+
+4. Map refreshing and recreating: Our current implementation of the map will cause the map to recreate every times we change the filter, the ideal implementation will be to keep the map stable, while delete unnecessary marker and draw new marker. Although we believe this could be achieve by using the `leaflet::leafletproxy()` methods, but till the time we write this document, we have not completely figured out how it works, so we have to give up using this method. 
+
+Overall, the application has lots of potential and possibilities to extend, if time permits, we could add more features, improve the code efficiency, or redesign the UI using CSS.
+
+But at this stage, we are happy with what we produced, and hope you enjoy using our small application.
+
+
+
+## File introduction
+
+In this section, we will explain the purpose of each file. 
+
+**'data_clean_draft'**, folder containing all the draft/test files.
+
+**'map_app'**, folder containing our shiny app files.
+
+-   `Authers.md`: A markdown file containing the information of the authors of the shiny app.
+
+-   `Introduction.md`: A markdown file containing the introduction to our shiny app.
+
+-   `server.R`: An R script containing the code of the build up of our shiny app server.
+
+-   `ui.R`: An R script containing the code of the build up of the user interface of our shiny app.
+
+**'niche'**, folder containing all the downloaded websites.
+
+**'data_extract.R'**, an R script containing the code of data scraping from downloaded websites in **'niche'**.
+
+**'data_washing.R'**, an R script containing the code of data cleaning.
+
+**'dirty_df.Rds'**, an R data file of all the raw data collected from **'data_extract.R'**.
+
+**'helper.R'**, an R script containing the functions created for filtering data from cleaned data file. 
+
+**'project.Rmd'**, an R markdown file containing our write up to our project.
+
+**'tidy_df.Rds'**, an R data file of tidy data after data washing, output of **'data_washing.R'**.
+
+**'uni_df.Rds'**, and R data file of university attending information of each high school, output of **'data_washing.R'**.

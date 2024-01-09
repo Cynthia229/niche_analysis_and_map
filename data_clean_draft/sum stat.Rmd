@@ -1,0 +1,125 @@
+---
+title: "sum stat"
+author: "Wenxin Song"
+date: "2022-12-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+library(corrplot)
+ggplot2::theme_set(ggplot2::theme_bw())
+library(patchwork)
+```
+
+```{r}
+tidy_df <- readRDS(paste0(here::here(),"/tidy_df.Rds"))
+df = tidy_df %>% select(name, pubPri,state, tuition, safe_poll, happy_poll,teacher_student_ratio, grad_rate, SAT, ACT) %>%
+  drop_na()
+df$pubPri = ifelse(df$pubPri=="Private", 1,0)
+cur_state = "CA" # test
+```
+
+
+
+```{r}
+# happy
+cor(df%>% select(-state,-name) %>% filter(cur_state))
+```
+
+```{r}
+corrplot.mixed(cor(df%>% select(-state,-name)),
+               lower = "number", 
+               upper = "circle",
+               tl.col = "black")
+
+# SAT only related with ACT
+```
+
+
+```{r}
+# distribution of safe/happy poll
+poll_mean = apply(df %>%
+  select(safe_poll, happy_poll, state) %>%
+  filter(state == cur_state) %>% select(-state), 2,mean)
+
+df %>%
+  select(safe_poll, happy_poll, state) %>%
+  filter(state == cur_state) %>%
+  drop_na() %>%
+  ggplot() +
+  geom_density(aes(x = safe_poll, color = "safe_poll")) +
+  geom_vline(xintercept = mean(poll_mean[1]), linetype = "dashed")
+
+df %>%
+  select(safe_poll, happy_poll, state) %>%
+  filter(state == cur_state) %>%
+  drop_na() %>%
+  ggplot() +
+  geom_density(aes(x = happy_poll, color = "happy_poll")) +
+  geom_vline(xintercept = mean(poll_mean[2]), linetype = "dashed")
+
+
+corrplot.mixed(cor(df%>% 
+                     filter(state == cur_state) %>%
+                     select(-state,-name)),
+               lower = "number", 
+               upper = "circle",
+               tl.col = "black")
+```
+```{r}
+df = tidy_df %>% 
+  filter(state == cur_state)%>%
+  select(name, pubPri,tuition, safe_poll, happy_poll,teacher_student_ratio, grad_rate, SAT, ACT) %>%
+  drop_na()
+
+p1 <- df %>% 
+  filter(state == cur_state)%>%
+  select(pubPri, teacher_student_ratio) %>%
+  group_by(pubPri) %>%
+  summarize(
+    teacher_student_ratio = mean(teacher_student_ratio)
+  ) %>%
+  ggplot(aes(x = pubPri, y = teacher_student_ratio, fill = pubPri))+
+  geom_bar(stat = "identity", position = position_dodge(1)) +
+  labs(title = "Average teacher-student ratio")
+
+p2 <- df %>% 
+  filter(state == cur_state)%>%
+  select(pubPri, teacher_student_ratio, grad_rate, SAT, ACT) %>%
+  group_by(pubPri) %>%
+  summarize(
+    graduation_rate = mean(grad_rate)
+  ) %>%
+  ggplot(aes(x = pubPri, y = graduation_rate, fill = pubPri))+
+  geom_bar(stat = "identity", position = position_dodge(1))+
+  labs(title = "Average graduation rate")
+
+p3 <- df %>% 
+  filter(state == cur_state)%>%
+  select(pubPri, teacher_student_ratio, grad_rate, SAT, ACT) %>%
+  group_by(pubPri) %>%
+  summarize(
+    avg_SAT = mean(SAT)
+  ) %>%
+  ggplot(aes(x = pubPri, y = avg_SAT, fill = pubPri))+
+  geom_bar(stat = "identity", position = position_dodge(1))+
+  labs(title = "Average SAT score")
+
+p4 <- df %>% 
+  filter(state == cur_state)%>%
+  select(pubPri, teacher_student_ratio, grad_rate, SAT, ACT) %>%
+  group_by(pubPri) %>%
+  summarize(
+    avg_ACT = mean(ACT)
+  ) %>%
+  ggplot(aes(x = pubPri, y = avg_ACT, fill = pubPri))+
+  geom_bar(stat = "identity", position = position_dodge(1))+
+  labs(title = "Average ACT score")
+
+(p1+p2)/(p3+p4)
+```
+
+

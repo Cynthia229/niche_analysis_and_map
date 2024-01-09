@@ -1,0 +1,103 @@
+---
+title: "Untitled"
+author: "Wenxin Song"
+date: "2022-11-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rvest)
+library(tidyverse)
+library(stringr)
+```
+
+```{r}
+page = read_html("niche1/1.html")
+
+# select webstie
+page %>% html_elements("a.profile__website__link") %>% html_attr("href")
+# select tele
+page %>% html_elements("a.profile__telephone__link") %>% html_text2()
+# select addr
+page %>% html_elements(".profile__address--compact") %>% html_text()
+
+# select SAT, ACT
+page2 %>% 
+  html_elements(".scalar--three") %>%
+  html_elements(".scalar__value") %>%
+  html_text2()
+
+page %>% 
+  html_elements(".search-tags__wrap__list__tag") %>%
+  html_text2()
+```
+
+
+```{r}
+# extracting data
+file_name <- list.files("niche")[1:20]    
+dir <- paste("niche1/",file_name,sep = "") 
+n <- length(dir)
+
+# set up data frame
+data <- data.frame(matrix(nrow=n,ncol = 3))
+colnames(data) = c("SAT","ACT","tag")
+
+# extract info from htmls
+for (i in 1:n) {
+  tmp = readr::read_file(dir[i]) %>% 
+    rvest::read_html() 
+  tmp1 = tmp %>%
+    html_elements(".scalar--three") %>%
+    html_elements(".scalar__value") %>%
+    html_text2()
+  index = -1
+  for (j in seq_along(tmp1)){
+    if(str_detect(tmp1[j], "\\n")){
+      index = j
+      break
+    }
+  }
+  data[i,1] = str_extract(tmp1[index],"[0-9]*\\n") %>% 
+    str_sub(end = -2) %>% 
+    as.integer()
+  data[i,2] = str_extract(tmp1[index+1],"[0-9]*\\n") %>% 
+    str_sub(end = -2) %>% 
+    as.integer()
+  
+  tmp2 = tmp %>%
+  html_elements(".search-tags__wrap__list__tag") %>%
+  html_text2()
+  data[i,3] = unlist(str_flatten(tmp2, collapse = ","))
+}
+```
+
+```{r}
+path <- file.path(here::here(), 'niche')
+
+get_ratio = function(link) {
+  ratio <- link %>%
+    readr::read_file() %>%
+    read_html() %>%
+    html_elements("#teachers .scalar__value span") %>%
+    html_text2()
+    
+  return(ratio)
+}
+
+get_grade = function(link) {
+  grade <- link %>%
+    readr::read_file() %>%
+    read_html() %>%
+    html_elements("#header .niche__grade--small--a-plus") %>%
+    html_text2()
+    
+  return(grade)
+}
+
+temp_path <- paste0(here::here(), "/niche/", dir(path)) # PLEASE double check the path
+ratio = purrr::map_chr(temp_path, get_ratio)
+grade <- purrr::map_chr(temp_path, get_grade)
+
+```
